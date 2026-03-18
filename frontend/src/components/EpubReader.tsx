@@ -1,108 +1,85 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import ePub, { Book, Rendition, NavItem } from 'epubjs'
 import './EpubReader.css'
 
 interface EpubReaderProps {
   bookId: string
-  filePath?: string
-  title?: string
 }
 
 function EpubReader({ bookId }: EpubReaderProps) {
   const viewerRef = useRef<HTMLDivElement>(null)
-  const bookRef = useRef<any>(null)
-  const renditionRef = useRef<any>(null)
+  const bookRef = useRef<Book | null>(null)
+  const renditionRef = useRef<Rendition | null>(null)
   
   const [currentLocation, setCurrentLocation] = useState(0)
   const [showTOC, setShowTOC] = useState(false)
-  const [chapters, setChapters] = useState<any[]>([])
+  const [chapters, setChapters] = useState<NavItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const initEpub = useCallback(async () => {
     if (!viewerRef.current) return
 
-    const initEpub = async () => {
-      try {
-        setIsLoading(true)
-        
-        // 动态导入 EPUB.js
-        return new Promise<void>((resolve) => {
-          const script = document.createElement('script')
-          script.src = 'https://cdn.jsdelivr.net/npm/epubjs@0.3.88/dist/epub.min.js'
-          script.onload = async () => {
-            try {
-              const EPUBJS = (window as any).EPUB
-              if (!EPUBJS) {
-                throw new Error('EPUB.js library failed to load')
-              }
+    try {
+      setIsLoading(true)
+      setError(null)
 
-              // Create book with URL
-              const book = new EPUBJS.Book(`/api/books/${bookId}/file`)
-              bookRef.current = book
+      // 创建 Book 实例
+      const book = ePub(`/api/books/${bookId}/file`)
+      bookRef.current = book
 
-              if (viewerRef.current) {
-                // Create rendition
-                const rendition = book.renderTo(viewerRef.current, {
-                  width: '100%',
-                  height: '100%',
-                  spread: 'auto',
-                })
+      // 等待 book 加载
+      await book.ready
 
-                renditionRef.current = rendition
+      // 创建 rendition
+      const rendition = book.renderTo(viewerRef.current, {
+        width: '100%',
+        height: '100%',
+        spread: 'auto',
+        flow: 'paginated',
+      })
 
-                // Display the book
-                await rendition.display()
+      renditionRef.current = rendition
 
-                // Generate locations for progress tracking
-                await book.locations.generate(256)
+      // 显示内容
+      await rendition.display()
 
-                // Get table of contents
-                const toc = book.navigation?.toc || []
-                setChapters(toc)
+      // 生成位置信息用于进度追踪
+      await book.locations.generate(256)
 
-                // Track reading progress
-                rendition.on('relocated', (location: any) => {
-                  const progress = book.locations.percentageFromCfi(location.start.cfi)
-                  setCurrentLocation(Math.round(progress * 100))
-                })
-
-                // Handle keyboard shortcuts
-                document.addEventListener('keydown', (e: KeyboardEvent) => {
-                  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'j' || e.key === 'n') {
-                    e.preventDefault()
-                    rendition.next()
-                  } else if (e.key === 'ArrowLeft' || e.key === 'h' || e.key === 'p') {
-                    e.preventDefault()
-                    rendition.prev()
-                  }
-                })
-              }
-
-              setIsLoading(false)
-              resolve()
-            } catch (error) {
-              console.error('Failed to initialize EPUB:', error)
-              setIsLoading(false)
-              resolve()
-            }
-          }
-
-          script.onerror = () => {
-            console.error('Failed to load EPUB.js script')
-            setIsLoading(false)
-            resolve()
-          }
-
-          document.head.appendChild(script)
-        })
-      } catch (error) {
-        console.error('Failed to initialize EPUB:', error)
-        setIsLoading(false)
+      // 获取目录
+      const navigation = await book.loaded.navigation
+      if (navigation?.toc) {
+        setChapters(navigation.toc)
       }
-    }
 
+      // 监听位置变化
+      rendition.on('relocated', (location: any) => {
+        if (book.locations) {
+          const progress = book.locations.percentageFromCfi(location.start.cfi)
+          setCurrentLocation(Math.round(progress * 100))
+        }
+      })
+
+      // 监听渲染错误
+      rendition.on('error', (err: Error) => {
+        console.error('Rendition error:', err)
+        setError('渲染电子书时出错')
+      })
+
+      setIsLoading(false)
+    } catch (err) {
+      console.error('Failed to initialize EPUB:', err)
+      setError('加载电子书失败，请检查文件格式是否正确')
+      setIsLoading(false)
+    }
+  }, [bookId])
+
+  useEffect(() => {
     initEpub()
 
     return () => {
+      // 清理资源
       if (renditionRef.current) {
         renditionRef.current.destroy()
       }
@@ -110,25 +87,50 @@ function EpubReader({ bookId }: EpubReaderProps) {
         bookRef.current.destroy()
       }
     }
-  }, [bookId])
+  }, [initEpub])
+
+  // 键盘导航
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!renditionRef.current) return
+      
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'j') {
+        e.preventDefault()
+        renditionRef.current.next()
+      } else if (e.key === 'ArrowLeft' || e.key === 'h') {
+        e.preventDefault()
+        renditionRef.current.prev()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const goNext = () => {
-    if (renditionRef.current) {
-      renditionRef.current.next()
-    }
+    renditionRef.current?.next()
   }
 
   const goPrev = () => {
-    if (renditionRef.current) {
-      renditionRef.current.prev()
-    }
+    renditionRef.current?.prev()
   }
 
   const goToChapter = (href: string) => {
-    if (renditionRef.current) {
-      renditionRef.current.display(href)
-      setShowTOC(false)
-    }
+    renditionRef.current?.display(href)
+    setShowTOC(false)
+  }
+
+  if (error) {
+    return (
+      <div className="epub-reader">
+        <div className="error-container">
+          <p className="error-text">{error}</p>
+          <button onClick={() => window.history.back()} className="back-button">
+            返回
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -138,9 +140,7 @@ function EpubReader({ bookId }: EpubReaderProps) {
           <button className="toolbar-btn" onClick={goPrev} title="上一页 (←)">
             ← 上一页
           </button>
-          <span className="page-info">
-            {currentLocation}%
-          </span>
+          <span className="page-info">{currentLocation}%</span>
           <button className="toolbar-btn" onClick={goNext} title="下一页 (→)">
             下一页 →
           </button>
@@ -155,31 +155,32 @@ function EpubReader({ bookId }: EpubReaderProps) {
             📑 目录
           </button>
         </div>
-
-        <div className="toolbar-right">
-        </div>
       </div>
 
       <div className="reader-progress">
-        <div className="progress-bar" style={{ width: currentLocation + '%' }}></div>
+        <div className="progress-bar" style={{ width: `${currentLocation}%` }}></div>
         <span className="progress-text">{currentLocation}%</span>
       </div>
 
       {showTOC && (
         <div className="toc-panel">
           <h3>目录</h3>
-          <ul className="toc-list">
-            {chapters.map((chapter, idx) => (
-              <li key={idx}>
-                <button
-                  className="toc-item"
-                  onClick={() => goToChapter(chapter.href)}
-                >
-                  {chapter.label}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {chapters.length > 0 ? (
+            <ul className="toc-list">
+              {chapters.map((chapter, idx) => (
+                <li key={idx}>
+                  <button
+                    className="toc-item"
+                    onClick={() => goToChapter(chapter.href)}
+                  >
+                    {chapter.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="no-toc">此书没有目录</p>
+          )}
         </div>
       )}
 

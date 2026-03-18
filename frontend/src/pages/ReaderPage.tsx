@@ -8,7 +8,6 @@ interface BookDetail {
   id: string
   title: string
   author: string
-  filePath: string
 }
 
 function ReaderPage() {
@@ -21,10 +20,12 @@ function ReaderPage() {
   useEffect(() => {
     const fetchBook = async () => {
       if (!id) return
+      
       try {
         setLoading(true)
         const response = await axios.get(`/api/books/${id}`)
         setBook(response.data)
+        setError(null)
       } catch (err) {
         console.error('获取图书详情失败:', err)
         setError('获取图书详情失败')
@@ -37,14 +38,21 @@ function ReaderPage() {
   }, [id])
 
   if (loading) {
-    return <div className="reader-page loading">加载中...</div>
+    return (
+      <div className="reader-page loading">
+        <div className="spinner"></div>
+        <p>加载中...</p>
+      </div>
+    )
   }
 
   if (error || !book) {
     return (
       <div className="reader-page error">
         <p>{error || '找不到图书'}</p>
-        <button onClick={() => navigate('/')}>返回首页</button>
+        <button onClick={() => navigate('/')} className="btn-back">
+          返回首页
+        </button>
       </div>
     )
   }
@@ -55,10 +63,14 @@ function ReaderPage() {
         <button className="back-btn" onClick={() => navigate('/')}>
           ← 返回
         </button>
-        <h1>{book.title}</h1>
-        <p>{book.author}</p>
+        <div className="book-info">
+          <h1>{book.title}</h1>
+          <p className="author">{book.author || '未知作者'}</p>
+        </div>
       </div>
-      <EpubReader bookId={id!} filePath={book.filePath} title={book.title} />
+      <div className="reader-container">
+        <EpubReader bookId={id!} />
+      </div>
     </div>
   )
 }

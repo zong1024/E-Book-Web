@@ -1,9 +1,40 @@
 .epub-reader {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 200px);
+  height: 100%;
   gap: 0;
   position: relative;
+  background: white;
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+}
+
+.error-text {
+  color: #e74c3c;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.back-button {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.no-toc {
+  color: #999;
+  font-size: 0.9rem;
 }
 
 .reader-toolbar {
