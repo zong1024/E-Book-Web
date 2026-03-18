@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试前端服务</title>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        .test { padding: 20px; margin: 10px 0; background: white; border-radius: 5px; }
+        .pass { border-left: 4px solid green; color: green; }
+        .fail { border-left: 4px solid red; color: red; }
+        code { background: #f0f0f0; padding: 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 EPUB阅读器 - 诊断测试</h1>
+    
+    <div class="test" id="frontend-test">
+        <h3>前端服务检测</h3>
+        <p id="frontend-status">检测中...</p>
+    </div>
+
+    <div class="test" id="backend-test">
+        <h3>后端API检测</h3>
+        <p id="backend-status">检测中...</p>
+    </div>
+
+    <div class="test" id="books-test">
+        <h3>获取图书列表</h3>
+        <p id="books-status">检测中...</p>
+        <pre id="books-data"></pre>
+    </div>
+
+    <script>
+        // 测试前端
+        document.getElementById('frontend-status').innerText = '✓ 前端服务正常';
+        document.getElementById('frontend-test').classList.add('pass');
+
+        // 测试后端
+        fetch('http://localhost:5000/health')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('backend-status').innerText = '✓ 后端服务正常 (API: ' + JSON.stringify(data) + ')';
+                document.getElementById('backend-test').classList.add('pass');
+            })
+            .catch(e => {
+                document.getElementById('backend-status').innerText = '✗ 后端服务无响应: ' + e.message;
+                document.getElementById('backend-test').classList.add('fail');
+            });
+
+        // 测试获取图书列表
+        fetch('http://localhost:5000/api/books')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('books-status').innerText = '✓ 成功获取 ' + data.length + ' 本书';
+                document.getElementById('books-data').innerText = JSON.stringify(data, null, 2);
+                document.getElementById('books-test').classList.add('pass');
+            })
+            .catch(e => {
+                document.getElementById('books-status').innerText = '✗ 获取失败: ' + e.message;
+                document.getElementById('books-test').classList.add('fail');
+            });
+    </script>
+</body>
+</html>
