@@ -1,0 +1,180 @@
+.epub-reader {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  gap: 0;
+  position: relative;
+}
+
+.reader-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toolbar-btn {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background: #f5f5f5;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.toolbar-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.page-info {
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.font-size-control input {
+  width: 100px;
+}
+
+.reader-progress {
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 4px;
+  background: #f0f0f0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s;
+}
+
+.progress-text {
+  position: absolute;
+  right: 1rem;
+  top: -22px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.toc-panel {
+  position: absolute;
+  left: 0;
+  top: 100px;
+  width: 250px;
+  max-height: 400px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.toc-panel h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  transition: all 0.3s;
+  border-radius: 3px;
+  margin-bottom: 0.3rem;
+}
+
+.toc-item:hover {
+  background: #f5f5f5;
+  color: #667eea;
+}
+
+.epub-viewer {
+  flex: 1;
+  overflow: hidden;
+  background: white;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 100;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* EPUB.js 自定义样式 */
+.epub-viewer iframe {
+  border: none;
+}
+
+/* 隐藏 EPUB.js 内置的触摸控制 */
+.epub-viewer .nextPage,
+.epub-viewer .prevPage {
+  display: none !important;
+}
